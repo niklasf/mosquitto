@@ -1301,7 +1301,7 @@ accept_protocol_versions 3, 4</programlisting>
 					</listitem>
 				</varlistentry>
 				<varlistentry>
-					<term><option>listener</option> <replaceable>port</replaceable> <replaceable><optional>bind address/host/unix socket path</optional></replaceable></term>
+					<term><option>listener</option> &lt; <replaceable>port</replaceable> <optional><replaceable>bind address/host</replaceable></optional> | 0 <replaceable>unix socket path</replaceable> &gt;</term>
 					<listitem>
 						<para>Listen for incoming network connection on the
 							specified port. A second optional argument allows
@@ -1311,7 +1311,7 @@ accept_protocol_versions 3, 4</programlisting>
 							nor <option>port</option> options are used then the
 							default listener will not be started.</para>
 
-						<para>The <option>bind address/host</option> option
+						<para>The <replaceable>bind address/host</replaceable> option
 							allows this listener to be bound to a specific IP
 							address by passing an IP address or hostname. For
 							websockets listeners, it is only possible to pass
@@ -1320,7 +1320,9 @@ accept_protocol_versions 3, 4</programlisting>
 						<para>On systems that support Unix Domain Sockets, this
 							option can also be used to create a Unix socket rather
 							than opening a TCP socket. In this case, the port must
-							be set to 0, and the unix socket path must be given.</para>
+							be set to 0, and the <replaceable>unix socket path</replaceable>
+							must be given. A path starting with @ is placed
+							in the abstract namespace.</para>
 
 						<para>This option may be specified multiple times. See
 							also the <option>mount_point</option>

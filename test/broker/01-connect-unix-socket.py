@@ -6,7 +6,8 @@ from mosq_test_helper import *
 
 def write_config(filename, port):
     with open(filename, 'w') as f:
-        f.write("listener 0 %d.sock\n" % (port))
+        f.write(f"listener 0 {port}.sock\n")
+        f.write(f"listener 0 @mosquitto-{port}\n")
         f.write("allow_anonymous true\n")
 
 def do_test():
@@ -25,7 +26,11 @@ def do_test():
             time.sleep(0.1)
         else:
             time.sleep(2)
+
         sock = mosq_test.do_client_connect_unix(connect_packet, connack_packet, path=f"{port}.sock")
+        sock.close()
+
+        sock = mosq_test.do_client_connect_unix(connect_packet, connack_packet, path=f"\x00mosquitto-{port}")
         sock.close()
 
         rc = 0

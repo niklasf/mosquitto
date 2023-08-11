@@ -678,6 +678,7 @@ int send__auth(struct mosquitto *context, uint8_t reason_code, const void *auth_
  * ============================================================ */
 void net__broker_init(void);
 void net__broker_cleanup(void);
+void net__socket_unlink(struct mosquitto__listener *listener);
 struct mosquitto *net__socket_accept(struct mosquitto__listener_sock *listensock);
 int net__socket_listen(struct mosquitto__listener *listener);
 int net__socket_get_address(mosq_sock_t sock, char *buf, size_t len, uint16_t *remote_address);

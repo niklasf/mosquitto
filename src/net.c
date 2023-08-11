@@ -109,6 +109,18 @@ static void net__print_error(unsigned int log, const char *format_str)
 }
 
 
+void net__socket_unlink(struct mosquitto__listener *listener)
+{
+#ifdef WITH_UNIX_SOCKETS
+	if(listener->unix_socket_path != NULL && listener->unix_socket_path[0] && listener->unix_socket_path[0] != '@'){
+		unlink(listener->unix_socket_path);
+	}
+#else
+	(void)listener;
+#endif
+}
+
+
 struct mosquitto *net__socket_accept(struct mosquitto__listener_sock *listensock)
 {
 	mosq_sock_t new_sock = INVALID_SOCKET;
@@ -873,11 +885,12 @@ static int net__socket_listen_tcp(struct mosquitto__listener *listener)
 static int net__socket_listen_unix(struct mosquitto__listener *listener)
 {
 	struct sockaddr_un addr;
+	socklen_t addrlen;
 	int sock;
 	int rc;
 	mode_t old_mask;
 
-	if(listener->unix_socket_path == NULL){
+	if(listener->unix_socket_path == NULL || !listener->unix_socket_path[0]){
 		return MOSQ_ERR_INVAL;
 	}
 	if(strlen(listener->unix_socket_path) > sizeof(addr.sun_path)-1){
@@ -885,11 +898,18 @@ static int net__socket_listen_unix(struct mosquitto__listener *listener)
 		return MOSQ_ERR_INVAL;
 	}
 
-	unlink(listener->unix_socket_path);
-	log__printf(NULL, MOSQ_LOG_INFO, "Opening unix listen socket on path %s.", listener->unix_socket_path);
+	net__socket_unlink(listener);
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_UNIX;
 	strncpy(addr.sun_path, listener->unix_socket_path, sizeof(addr.sun_path)-1);
+	if(addr.sun_path[0] == '@'){
+		addrlen = (socklen_t)(offsetof(struct sockaddr_un, sun_path)+strlen(addr.sun_path));
+		addr.sun_path[0] = 0; /* Abstract namespace */
+		log__printf(NULL, MOSQ_LOG_INFO, "Opening abstract unix listen socket at %s.", listener->unix_socket_path);
+	}else{
+		addrlen = sizeof(struct sockaddr_un);
+		log__printf(NULL, MOSQ_LOG_INFO, "Opening unix listen socket on path %s.", listener->unix_socket_path);
+	}
 
 	sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if(sock == INVALID_SOCKET){
@@ -907,7 +927,7 @@ static int net__socket_listen_unix(struct mosquitto__listener *listener)
 
 
 	old_mask = umask(0007);
-	rc = bind(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));
+	rc = bind(sock, (struct sockaddr *)&addr, addrlen);
 	umask(old_mask);
 
 	if(rc == -1){

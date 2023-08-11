@@ -496,6 +496,7 @@ static int net__try_connect_tcp(const char *host, uint16_t port, mosq_sock_t *so
 static int net__try_connect_unix(const char *host, mosq_sock_t *sock)
 {
 	struct sockaddr_un addr;
+	socklen_t addrlen;
 	int s;
 	int rc;
 
@@ -506,6 +507,12 @@ static int net__try_connect_unix(const char *host, mosq_sock_t *sock)
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_UNIX;
 	strncpy(addr.sun_path, host, sizeof(addr.sun_path)-1);
+	if(addr.sun_path[0] == '@'){
+		addrlen = (socklen_t)(offsetof(struct sockaddr_un, sun_path)+strlen(addr.sun_path));
+		addr.sun_path[0] = 0; /* Abstract namespace */
+	}else{
+		addrlen = sizeof(struct sockaddr_un);
+	}
 
 	s = socket(AF_UNIX, SOCK_STREAM, 0);
 	if(s < 0){
@@ -514,7 +521,7 @@ static int net__try_connect_unix(const char *host, mosq_sock_t *sock)
 	rc = net__socket_nonblock(&s);
 	if(rc) return rc;
 
-	rc = connect(s, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));
+	rc = connect(s, (struct sockaddr *)&addr, addrlen);
 	if(rc < 0){
 		close(s);
 		return MOSQ_ERR_ERRNO;
