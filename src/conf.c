@@ -1799,6 +1799,9 @@ static int config__read_file_core(struct mosquitto__config *config, bool reload,
 							cur_listener->host = mosquitto__strdup(token);
 						}
 					}
+					cur_listener->port = 0;
+					cur_listener->listen_fd = 100;
+					cur_listener->unix_socket_path = NULL;
 				}else if(!strcmp(token, "local_clientid")){
 #ifdef WITH_BRIDGE
 					REQUIRE_BRIDGE(token);

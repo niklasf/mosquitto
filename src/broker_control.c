@@ -147,6 +147,9 @@ static int add_listener(cJSON *j_listeners, struct mosquitto__listener *listener
 #ifdef WITH_UNIX_SOCKETS
 			|| (listener->unix_socket_path && cJSON_AddStringToObject(j_listener, "socket-path", listener->unix_socket_path) == NULL)
 #endif
+#ifndef WIN32
+			|| (listener->listen_fd != INVALID_SOCKET && cJSON_AddNumberToObject(j_listener, "listen-fd", listener->listen_fd) == NULL)
+#endif
 			){
 
 		return MOSQ_ERR_NOMEM;

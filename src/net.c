@@ -929,6 +929,35 @@ static int net__socket_listen_unix(struct mosquitto__listener *listener)
 #endif
 
 
+#ifndef WIN32
+int net__socket_listen_fd(struct mosquitto__listener *listener)
+{
+	if(listener->listen_fd == INVALID_SOCKET){
+		return MOSQ_ERR_INVAL;
+	}
+
+	log__printf(NULL, MOSQ_LOG_INFO, "Opening listen socket on file descriptor %d.", listener->listen_fd);
+
+	listener->sock_count++;
+	listener->socks = mosquitto__realloc(listener->socks, sizeof(mosq_sock_t)*(size_t)listener->sock_count);
+	if(!listener->socks){
+		log__printf(NULL, MOSQ_LOG_ERR, "Error: Out of memory.");
+		return MOSQ_ERR_NOMEM;
+	}
+	listener->socks[listener->sock_count-1] = listener->listen_fd;
+
+	if(listen(listener->listen_fd, 10) == -1){
+		net__print_error(MOSQ_LOG_ERR, "Error listening on file descriptor: %s");
+		return 1;
+	}
+	if(net__socket_nonblock(&listener->listen_fd)){
+		return 1;
+	}
+	return 0;
+}
+#endif
+
+
 /* Creates a socket and listens on port 'port'.
  * Returns 1 on failure
  * Returns 0 on success.
@@ -942,6 +971,11 @@ int net__socket_listen(struct mosquitto__listener *listener)
 #ifdef WITH_UNIX_SOCKETS
 	if(listener->port == 0 && listener->unix_socket_path != NULL){
 		rc = net__socket_listen_unix(listener);
+	}else
+#endif
+#ifndef WIN32
+	if(listener->port == 0 && listener->listen_fd != INVALID_SOCKET){
+		rc = net__socket_listen_fd(listener);
 	}else
 #endif
 	{

@@ -269,6 +269,9 @@ struct mosquitto__listener {
 #ifdef WITH_UNIX_SOCKETS
 	char *unix_socket_path;
 #endif
+#ifndef WIN32
+	int listen_fd;
+#endif
 	bool disable_protocol_v3;
 	bool disable_protocol_v4;
 	bool disable_protocol_v5;
